@@ -5,22 +5,18 @@ pipeline {
   stages {
     stage('Setup') {
       steps {
-        bat 'python -m venv venv'
+        bat '"C:\\Users\\AUB\\AppData\\Local\\Programs\\Python\\Python312\\python.exe" -m venv venv'
         bat 'venv\\Scripts\\python.exe -m pip install --upgrade pip'
         bat 'venv\\Scripts\\python.exe -m pip install -r requirements.txt'
       }
     }
 
     stage('Lint') {
-      steps {
-        bat 'venv\\Scripts\\python.exe -m flake8 app.py'
-      }
+      steps { bat 'venv\\Scripts\\python.exe -m flake8 app.py' }
     }
 
     stage('Test') {
-      steps {
-        bat 'venv\\Scripts\\python.exe -m pytest tests --maxfail=1 --disable-warnings -q'
-      }
+      steps { bat 'venv\\Scripts\\python.exe -m pytest tests --maxfail=1 --disable-warnings -q' }
     }
 
     stage('Coverage') {
@@ -34,11 +30,8 @@ pipeline {
     stage('Security Scan') {
       steps {
         script {
-          // Force UTF-8 for Bandit output; single-line string so Groovy doesn't see raw backslashes
           def code = bat(returnStatus: true, script: "chcp 65001 >NUL && %VIRTUAL_ENV%\\Scripts\\python.exe -X utf8 -m bandit -r . -f json -o bandit_report.json")
-          if (code != 0) {
-            echo "Bandit returned exit code . Report archived; continuing."
-          }
+          if (code != 0) { echo "Bandit returned exit code . Report archived; continuing." }
         }
       }
     }
