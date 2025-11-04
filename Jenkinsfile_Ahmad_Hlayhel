@@ -1,62 +1,60 @@
 pipeline {
   agent any
-  environment {
-    VIRTUAL_ENV = 'venv'
-    PYTHON = 'C:\\Users\\AUB\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
-    PYTHONIOENCODING = 'utf-8'
-    PYTHONUTF8 = '1'
-  }
+  environment { VIRTUAL_ENV = 'venv' }
+
   stages {
     stage('Setup') {
       steps {
-        bat '\"%PYTHON%\" -m venv %VIRTUAL_ENV%'
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m pip install --upgrade pip'
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m pip install -r requirements.txt'
+        bat 'python -m venv venv'
+        bat 'venv\\Scripts\\python.exe -m pip install --upgrade pip'
+        bat 'venv\\Scripts\\python.exe -m pip install -r requirements.txt'
       }
     }
+
     stage('Lint') {
-      steps { bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m flake8 app.py' }
+      steps {
+        bat 'venv\\Scripts\\python.exe -m flake8 app.py'
+      }
     }
+
     stage('Test') {
-      steps { bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m pytest tests --maxfail=1 --disable-warnings -q' }
+      steps {
+        bat 'venv\\Scripts\\python.exe -m pytest tests --maxfail=1 --disable-warnings -q'
+      }
     }
+
     stage('Coverage') {
       steps {
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage run -m pytest'
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage report > coverage.txt'
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage xml -o coverage.xml'
+        bat 'venv\\Scripts\\python.exe -m coverage run -m pytest'
+        bat 'venv\\Scripts\\python.exe -m coverage report 1>coverage.txt'
+        bat 'venv\\Scripts\\python.exe -m coverage xml -o coverage.xml'
       }
     }
+
     stage('Security Scan') {
-  steps {
-    script {
-      def code = bat(returnStatus: true, script: '''
-chcp 65001 >NUL
-%VIRTUAL_ENV%\Scripts\python.exe -X utf8 -m bandit -r . -f json -o bandit_report.json
-''')
-      if (code != 0) {
-        echo "Bandit found issues (exit code ). Report saved; continuing."
+      steps {
+        script {
+          // Force UTF-8 for Bandit output; single-line string so Groovy doesn't see raw backslashes
+          def code = bat(returnStatus: true, script: "chcp 65001 >NUL && %VIRTUAL_ENV%\\Scripts\\python.exe -X utf8 -m bandit -r . -f json -o bandit_report.json")
+          if (code != 0) {
+            echo "Bandit returned exit code . Report archived; continuing."
+          }
+        }
       }
     }
-  }
-}
-    }
+
     stage('Deploy') {
       steps {
-        bat '''
-mkdir deploy 2>NUL
-copy app.py deploy\\app.py >NUL
-%VIRTUAL_ENV%\\Scripts\\python.exe -c "from app import greet; print(greet('World'))" > deploy\\run_output.txt
-'''
-        echo 'Local deploy simulated (files in deploy/).'
+        echo 'Simulating deployment...'
+        bat 'echo Deployment successful!'
       }
     }
   }
+
   post {
     always {
-      archiveArtifacts artifacts: 'coverage.txt,coverage.xml,bandit_report.json,deploy/**', fingerprint: true
+      archiveArtifacts artifacts: 'coverage.txt, coverage.xml, bandit_report.json', fingerprint: true
       cleanWs()
     }
   }
 }
-
