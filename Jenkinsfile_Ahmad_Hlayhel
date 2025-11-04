@@ -2,31 +2,29 @@ pipeline {
   agent any
   environment {
     VIRTUAL_ENV = 'venv'
+    PYTHON = 'C:\\Users\\AUB\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
   }
   stages {
     stage('Setup') {
       steps {
         bat """
-          python -m venv %VIRTUAL_ENV%
-          call %VIRTUAL_ENV%\\Scripts\\activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          "%PYTHON%" -m venv %VIRTUAL_ENV%
+          %VIRTUAL_ENV%\\Scripts\\python.exe -m pip install --upgrade pip
+          %VIRTUAL_ENV%\\Scripts\\python.exe -m pip install -r requirements.txt
         """
       }
     }
     stage('Lint') {
       steps {
         bat """
-          call %VIRTUAL_ENV%\\Scripts\\activate
-          flake8 app.py
+          %VIRTUAL_ENV%\\Scripts\\python.exe -m flake8 app.py
         """
       }
     }
     stage('Test') {
       steps {
         bat """
-          call %VIRTUAL_ENV%\\Scripts\\activate
-          pytest -q
+          %VIRTUAL_ENV%\\Scripts\\python.exe -m pytest -q
         """
       }
     }
@@ -36,7 +34,5 @@ pipeline {
       }
     }
   }
-  post {
-    always { cleanWs() }
-  }
+  post { always { cleanWs() } }
 }
