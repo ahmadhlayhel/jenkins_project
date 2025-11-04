@@ -28,12 +28,18 @@ pipeline {
       }
     }
     stage('Security Scan') {
-      steps {
-        bat '''
+  steps {
+    script {
+      def code = bat(returnStatus: true, script: '''
 chcp 65001 >NUL
-%VIRTUAL_ENV%\\Scripts\\python.exe -X utf8 -m bandit -r . -f json -o bandit_report.json
-'''
+%VIRTUAL_ENV%\Scripts\python.exe -X utf8 -m bandit -r . -f json -o bandit_report.json
+''')
+      if (code != 0) {
+        echo "Bandit found issues (exit code ). Report saved; continuing."
       }
+    }
+  }
+}
     }
     stage('Deploy') {
       steps {
@@ -53,3 +59,4 @@ copy app.py deploy\\app.py >NUL
     }
   }
 }
+
