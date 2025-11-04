@@ -3,6 +3,8 @@ pipeline {
   environment {
     VIRTUAL_ENV = 'venv'
     PYTHON = 'C:\\Users\\AUB\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
+    PYTHONIOENCODING = 'utf-8'
+    PYTHONUTF8 = '1'
   }
   stages {
     stage('Setup') {
@@ -13,32 +15,41 @@ pipeline {
       }
     }
     stage('Lint') {
-      steps {
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m flake8 app.py'
-      }
+      steps { bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m flake8 app.py' }
     }
     stage('Test') {
-      steps {
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m pytest tests --maxfail=1 --disable-warnings -q'
-      }
+      steps { bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m pytest tests --maxfail=1 --disable-warnings -q' }
     }
     stage('Coverage') {
       steps {
         bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage run -m pytest'
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage report'
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage report > coverage.txt'
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage xml -o coverage.xml'
       }
     }
     stage('Security Scan') {
       steps {
-        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m bandit -r .'
+        bat '''
+chcp 65001 >NUL
+%VIRTUAL_ENV%\\Scripts\\python.exe -X utf8 -m bandit -r . -f json -o bandit_report.json
+'''
       }
     }
     stage('Deploy') {
       steps {
-        echo 'Simulating deployment...'
-        bat 'echo Deployment successful!'
+        bat '''
+mkdir deploy 2>NUL
+copy app.py deploy\\app.py >NUL
+%VIRTUAL_ENV%\\Scripts\\python.exe -c "from app import greet; print(greet('World'))" > deploy\\run_output.txt
+'''
+        echo 'Local deploy simulated (files in deploy/).'
       }
     }
   }
-  post { always { cleanWs() } }
+  post {
+    always {
+      archiveArtifacts artifacts: 'coverage.txt,coverage.xml,bandit_report.json,deploy/**', fingerprint: true
+      cleanWs()
+    }
+  }
 }
