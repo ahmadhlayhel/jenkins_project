@@ -7,30 +7,36 @@ pipeline {
   stages {
     stage('Setup') {
       steps {
-        bat """
-          "%PYTHON%" -m venv %VIRTUAL_ENV%
-          %VIRTUAL_ENV%\\Scripts\\python.exe -m pip install --upgrade pip
-          %VIRTUAL_ENV%\\Scripts\\python.exe -m pip install -r requirements.txt
-        """
+        bat '\"%PYTHON%\" -m venv %VIRTUAL_ENV%'
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m pip install --upgrade pip'
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m pip install -r requirements.txt'
       }
     }
     stage('Lint') {
       steps {
-        bat """
-          %VIRTUAL_ENV%\\Scripts\\python.exe -m flake8 app.py
-        """
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m flake8 app.py'
       }
     }
     stage('Test') {
       steps {
-        bat """
-          %VIRTUAL_ENV%\\Scripts\\python.exe -m pytest -q
-        """
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m pytest tests --maxfail=1 --disable-warnings -q'
+      }
+    }
+    stage('Coverage') {
+      steps {
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage run -m pytest'
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m coverage report'
+      }
+    }
+    stage('Security Scan') {
+      steps {
+        bat '%VIRTUAL_ENV%\\Scripts\\python.exe -m bandit -r .'
       }
     }
     stage('Deploy') {
       steps {
-        echo 'Deploying application...'
+        echo 'Simulating deployment...'
+        bat 'echo Deployment successful!'
       }
     }
   }
